@@ -48,9 +48,9 @@ function showToast(message, type = 'success') {
 
 // --- Format Currency ---
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IE', { // Using en-IE for standard € formatting with period decimals
         style: 'currency',
-        currency: 'USD',
+        currency: 'EUR',
         minimumFractionDigits: 2,
     }).format(amount);
 }
@@ -93,7 +93,7 @@ function initSidebar() {
 }
 
 // --- Animated Counter ---
-function animateCounter(element, target, prefix = '$', duration = 800) {
+function animateCounter(element, target, prefix = '€', duration = 800) {
     const start = 0;
     const startTime = performance.now();
 
@@ -104,7 +104,7 @@ function animateCounter(element, target, prefix = '$', duration = 800) {
         const eased = 1 - (1 - progress) * (1 - progress);
         const current = start + (target - start) * eased;
 
-        if (prefix === '$') {
+        if (prefix === '€' || prefix === '$') {
             element.textContent = formatCurrency(current);
         } else {
             element.textContent = prefix + Math.round(current).toLocaleString();

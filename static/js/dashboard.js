@@ -29,9 +29,9 @@ async function loadDashboard() {
 }
 
 function renderSummaryCards(summary) {
-    animateCounter(document.getElementById('total-income'), summary.total_income, '$');
-    animateCounter(document.getElementById('total-expense'), summary.total_expense, '$');
-    animateCounter(document.getElementById('net-savings'), summary.net_savings, '$');
+    animateCounter(document.getElementById('total-income'), summary.total_income, '€');
+    animateCounter(document.getElementById('total-expense'), summary.total_expense, '€');
+    animateCounter(document.getElementById('net-savings'), summary.net_savings, '€');
     animateCounter(document.getElementById('tx-count'), summary.transaction_count, '');
 }
 
@@ -115,7 +115,7 @@ function renderLineChart(data) {
                 y: {
                     grid: { color: 'rgba(255,255,255,0.04)' },
                     ticks: {
-                        callback: (val) => '$' + val,
+                        callback: (val) => '€' + val,
                     },
                 },
             },
