@@ -2,7 +2,7 @@
 
 A modern, responsive, full-stack web application built to help you track your income, expenses, and savings at a glance.
 
-![Dashboard Preview](https://via.placeholder.com/800x400.png?text=Personal+Finance+Tracker)
+![Dashboard Preview](./preview.png)
 
 ## ✨ Features
 
