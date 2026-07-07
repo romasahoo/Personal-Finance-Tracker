@@ -4,6 +4,7 @@
 
 let lineChart = null;
 let doughnutChart = null;
+let recentTransactions = [];
 
 // Chart.js global defaults for dark theme
 Chart.defaults.color = '#9d9db8';
@@ -182,11 +183,12 @@ function renderDoughnutChart(data) {
 }
 
 function renderRecentTransactions(transactions) {
+    recentTransactions = transactions;
     const tbody = document.getElementById('recent-tbody');
 
     if (!transactions.length) {
         tbody.innerHTML = `
-            <tr><td colspan="4">
+            <tr><td colspan="5">
                 <div class="empty-state">
                     <div class="icon">📭</div>
                     <p>No transactions yet. <a href="/add" style="color: var(--accent-purple-light)">Add your first one!</a></p>
@@ -196,14 +198,141 @@ function renderRecentTransactions(transactions) {
     }
 
     tbody.innerHTML = transactions.map(tx => `
-        <tr>
+        <tr data-id="${tx.id}">
             <td>${formatDateDisplay(tx.date)}</td>
             <td>${tx.description || '—'}</td>
             <td><span class="badge ${tx.category.toLowerCase()}">${tx.category}</span></td>
             <td class="amount-${tx.category.toLowerCase()}">${tx.category === 'Income' ? '+' : '-'}${formatCurrency(tx.amount)}</td>
+            <td>
+                <div class="action-btns">
+                    <button class="btn-icon edit" onclick="openEditModal(${tx.id})" title="Edit" aria-label="Edit transaction">✏️</button>
+                    <button class="btn-icon delete" onclick="openDeleteModal(${tx.id})" title="Delete" aria-label="Delete transaction">🗑️</button>
+                </div>
+            </td>
         </tr>
     `).join('');
 }
 
+// --- Date format conversion helpers ---
+function ddmmyyyyToIso(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return dateStr;
+}
+
+function isoToDdmmyyyy(isoStr) {
+    const parts = isoStr.split('-');
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return isoStr;
+}
+
+// --- Edit Modal ---
+function openEditModal(id) {
+    const tx = recentTransactions.find(t => t.id === id);
+    if (!tx) return;
+
+    document.getElementById('edit-id').value = tx.id;
+    document.getElementById('edit-date').value = ddmmyyyyToIso(tx.date);
+    document.getElementById('edit-amount').value = tx.amount;
+    document.getElementById('edit-category').value = tx.category;
+    document.getElementById('edit-description').value = tx.description || '';
+
+    document.getElementById('edit-modal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+}
+
+async function saveEdit() {
+    const id = document.getElementById('edit-id').value;
+    const dateIso = document.getElementById('edit-date').value;
+    const amount = parseFloat(document.getElementById('edit-amount').value);
+    const category = document.getElementById('edit-category').value;
+    const description = document.getElementById('edit-description').value;
+
+    if (!dateIso || !amount || amount <= 0) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        await apiFetch(`/transactions/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                date: isoToDdmmyyyy(dateIso),
+                amount,
+                category,
+                description,
+            }),
+        });
+        showToast('Transaction updated successfully', 'success');
+        closeEditModal();
+        loadDashboard(); // Reload full dashboard to update charts/summary instantly
+    } catch (err) {
+        showToast(`Update failed: ${err.message}`, 'error');
+    }
+}
+
+// --- Delete Modal ---
+function openDeleteModal(id) {
+    const tx = recentTransactions.find(t => t.id === id);
+    if (!tx) return;
+
+    document.getElementById('delete-id').value = tx.id;
+    document.getElementById('delete-details').innerHTML = `
+        <div style="display: grid; gap: 6px; font-size: 0.88rem;">
+            <div><strong style="color: var(--text-muted);">Date:</strong> ${formatDateDisplay(tx.date)}</div>
+            <div><strong style="color: var(--text-muted);">Amount:</strong> <span class="amount-${tx.category.toLowerCase()}">${formatCurrency(tx.amount)}</span></div>
+            <div><strong style="color: var(--text-muted);">Category:</strong> ${tx.category}</div>
+            <div><strong style="color: var(--text-muted);">Description:</strong> ${tx.description || '—'}</div>
+        </div>
+    `;
+    document.getElementById('delete-modal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('active');
+}
+
+async function confirmDelete() {
+    const id = document.getElementById('delete-id').value;
+
+    try {
+        await apiFetch(`/transactions/${id}`, { method: 'DELETE' });
+        showToast('Transaction deleted', 'success');
+        closeDeleteModal();
+        loadDashboard(); // Reload full dashboard instantly
+    } catch (err) {
+        showToast(`Delete failed: ${err.message}`, 'error');
+    }
+}
+
 // Initialize
-document.addEventListener('DOMContentLoaded', loadDashboard);
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboard();
+
+    // Edit modal
+    document.getElementById('edit-cancel-btn').addEventListener('click', closeEditModal);
+    document.getElementById('edit-save-btn').addEventListener('click', saveEdit);
+
+    // Delete modal
+    document.getElementById('delete-cancel-btn').addEventListener('click', closeDeleteModal);
+    document.getElementById('delete-confirm-btn').addEventListener('click', confirmDelete);
+
+    // Close modals on overlay click
+    document.getElementById('edit-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeEditModal();
+    });
+    document.getElementById('delete-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeDeleteModal();
+    });
+
+    // Keyboard shortcut: Escape to close modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeEditModal();
+            closeDeleteModal();
+        }
+    });
+});
