@@ -207,6 +207,7 @@ body::before {
 /* --- Main Content --- */
 .main-content {
     flex: 1;
+    min-width: 0; /* Critical for flex child to shrink below content width */
     margin-left: var(--sidebar-width);
     padding: 32px 40px;
     min-height: 100vh;
