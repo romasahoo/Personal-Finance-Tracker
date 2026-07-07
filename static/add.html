@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Add a new income or expense transaction to your personal finance tracker.">
+    <title>Add Transaction — Finance Tracker</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">☰</button>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h1>💎 FinanceTracker</h1>
+                <span>Personal Finance Manager</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item" id="nav-dashboard">
+                    <span class="icon">📊</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="/transactions" class="nav-item" id="nav-transactions">
+                    <span class="icon">📋</span>
+                    <span class="label">Transactions</span>
+                </a>
+                <a href="/add" class="nav-item" id="nav-add">
+                    <span class="icon">➕</span>
+                    <span class="label">Add Transaction</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2>Add Transaction</h2>
+                <p>Record a new income or expense</p>
+            </div>
+
+            <div class="glass-card form-card">
+                <form id="add-form" novalidate>
+                    <div class="form-group">
+                        <label for="add-date">Date</label>
+                        <input type="date" id="add-date" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add-amount">Amount (€)</label>
+                        <input type="number" id="add-amount" class="form-control" placeholder="0.00" step="0.01"
+                            min="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add-category">Category</label>
+                        <select id="add-category" class="form-control" required>
+                            <option value="" disabled selected>Select category</option>
+                            <option value="Income">💰 Income</option>
+                            <option value="Expense">💸 Expense</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add-description">Description</label>
+                        <textarea id="add-description" class="form-control"
+                            placeholder="e.g., Monthly salary, groceries, rent..." rows="3"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            ➕ Add Transaction
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="reset-btn">
+                            Clear
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Success State -->
+                <div id="success-state" style="display: none; text-align: center; padding: 40px 0;">
+                    <div style="font-size: 3.5rem; margin-bottom: 16px; animation: fadeInUp 0.5s ease-out;">✅</div>
+                    <h3 style="font-size: 1.3rem; margin-bottom: 8px; animation: fadeInUp 0.5s ease-out 0.1s both;">
+                        Transaction Added!</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 28px; animation: fadeInUp 0.5s ease-out 0.2s both;"
+                        id="success-details"></p>
+                    <div
+                        style="display: flex; gap: 12px; justify-content: center; animation: fadeInUp 0.5s ease-out 0.3s both;">
+                        <button class="btn btn-primary" id="add-another-btn">➕ Add Another</button>
+                        <a href="/" class="btn btn-secondary">📊 Go to Dashboard</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/add.js"></script>
+</body>
+
+</html>

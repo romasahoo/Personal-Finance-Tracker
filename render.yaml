@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: finance-tracker
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
