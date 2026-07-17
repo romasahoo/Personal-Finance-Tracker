@@ -168,7 +168,7 @@ def logout_user(response: Response):
 @app.get("/me", response_model=UserResponse)
 def read_current_user(current_user: dict = Depends(get_current_user)):
     """Get current user information."""
-    return current_user
+    return current_user.to_dict()
 
 
 # --- API Endpoints ---

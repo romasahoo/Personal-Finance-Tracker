@@ -7,14 +7,22 @@ const API_BASE = '/api';
 // --- API Helper ---
 async function apiFetch(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
+    const token = localStorage.getItem("finance_token");
     const defaults = {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
     };
     const config = { ...defaults, ...options };
 
     try {
-        const response = await apiFetch(url, config);
+        const response = await fetch(url, config);
         if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem("finance_token");
+                window.location.href = "/login";
+            }
             const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
             throw new Error(error.detail || `HTTP ${response.status}`);
         }
