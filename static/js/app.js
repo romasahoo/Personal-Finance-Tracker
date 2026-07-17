@@ -13,7 +13,7 @@ async function apiFetch(endpoint, options = {}) {
     const config = { ...defaults, ...options };
 
     try {
-        const response = await fetch(url, config);
+        const response = await apiFetch(url, config);
         if (!response.ok) {
             const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
             throw new Error(error.detail || `HTTP ${response.status}`);

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Finance Tracker</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=1.1">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            text-align: center;
+        }
+        .auth-brand {
+            margin-bottom: 2rem;
+        }
+        .auth-brand h1 {
+            color: var(--accent-purple-light);
+            margin-bottom: 0.5rem;
+        }
+        .form-group {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        .btn-full {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .oauth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-oauth {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-oauth:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 1.5rem 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .divider:not(:empty)::before {
+            margin-right: .25em;
+        }
+        .divider:not(:empty)::after {
+            margin-left: .25em;
+        }
+        #login-error {
+            color: #ff4d4d;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container glass-card">
+    <div class="auth-brand">
+        <h1>💎 FinanceTracker</h1>
+        <p style="color: var(--text-secondary);">Sign in to your account</p>
+    </div>
+
+    <div class="oauth-buttons">
+        <a href="/auth/google/login" class="btn-oauth">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.7449 12.27C23.7449 11.48 23.6749 10.73 23.5549 10H12.2549V14.51H18.7249C18.4349 15.99 17.5849 17.24 16.3249 18.09V21.09H20.1849C22.4449 19.01 23.7449 15.92 23.7449 12.27Z"/><path fill="#34A853" d="M12.2549 24C15.4949 24 18.2049 22.92 20.1849 21.09L16.3249 18.09C15.2449 18.81 13.8749 19.25 12.2549 19.25C9.12492 19.25 6.47492 17.14 5.52492 14.29H1.54492V17.38C3.51492 21.3 7.56492 24 12.2549 24Z"/><path fill="#FBBC05" d="M5.52492 14.29C5.27492 13.57 5.14492 12.8 5.14492 12C5.14492 11.2 5.28492 10.43 5.52492 9.71V6.62H1.54492C0.724922 8.24 0.254922 10.06 0.254922 12C0.254922 13.94 0.724922 15.76 1.54492 17.38L5.52492 14.29Z"/><path fill="#EA4335" d="M12.2549 4.75C14.0249 4.75 15.6049 5.36 16.8549 6.55L20.2749 3.13C18.2049 1.19 15.4949 0 12.2549 0C7.56492 0 3.51492 2.7 1.54492 6.62L5.52492 9.71C6.47492 6.86 9.12492 4.75 12.2549 4.75Z"/></svg>
+            Continue with Google
+        </a>
+        <a href="/auth/github/login" class="btn-oauth">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            Continue with GitHub
+        </a>
+    </div>
+
+    <div class="divider">or</div>
+
+    <div id="login-error"></div>
+    <form id="login-form">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
+    </form>
+    <p style="margin-top: 1.5rem; font-size: 0.9rem;">
+        Don't have an account? <a href="/register" style="color: var(--accent-purple-light);">Register here</a>
+    </p>
+</div>
+
+<script src="/static/js/auth.js"></script>
+<script>
+    // If the URL has a hash like #token=XYZ (from OAuth redirect), save it and clear the URL
+    if (window.location.hash.startsWith("#token=")) {
+        const token = window.location.hash.replace("#token=", "");
+        localStorage.setItem("finance_token", token);
+        window.history.replaceState(null, null, "/");
+        window.location.href = "/";
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const btn = document.getElementById("login-btn");
+        const errorDiv = document.getElementById("login-error");
+        
+        btn.disabled = true;
+        btn.textContent = "Signing in...";
+        errorDiv.style.display = "none";
+        
+        try {
+            const res = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem("finance_token", data.access_token);
+                window.location.href = "/";
+            } else {
+                errorDiv.textContent = data.detail || "Login failed";
+                errorDiv.style.display = "block";
+            }
+        } catch (err) {
+            errorDiv.textContent = "Network error. Please try again.";
+            errorDiv.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Sign In";
+        }
+    });
+</script>
+</body>
+</html>

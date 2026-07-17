@@ -3,8 +3,8 @@ import csv
 from datetime import datetime
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, func, case
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, func, case
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # Load .env file for local development
 load_dotenv()
@@ -32,19 +32,46 @@ CSV_FILE = "finance_data.csv"
 DATE_FORMAT = "%d-%m-%Y"
 
 
-# --- SQLAlchemy Model ---
+# --- SQLAlchemy Models ---
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=True)
+    auth_provider = Column(String, default="local")
+    provider_id = Column(String, nullable=True, index=True)
+    created_at = Column(String, default=lambda: datetime.utcnow().isoformat())
+
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "created_at": self.created_at,
+        }
+
+
 class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     date = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
     category = Column(String, nullable=False)
     description = Column(String, default="")
 
+    user = relationship("User", back_populates="transactions")
+
     def to_dict(self):
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "date": self.date,
             "amount": self.amount,
             "category": self.category,
@@ -57,17 +84,37 @@ def init_db():
     """Create tables and migrate CSV data if needed."""
     Base.metadata.create_all(bind=engine)
 
-    # Migrate CSV data on first run
+    # Migrate CSV data on first run (assign to a default user if one exists)
     session = SessionLocal()
     try:
+        # Ensure a default user exists for orphaned or legacy transactions
+        default_user = session.query(User).filter(User.username == "default_admin").first()
+        if not default_user:
+            default_user = User(
+                username="default_admin",
+                email="admin@example.com",
+                hashed_password="legacy",
+                auth_provider="local"
+            )
+            session.add(default_user)
+            session.commit()
+            session.refresh(default_user)
+
+        # Assign any existing SQLite transactions without a user to default_user
+        orphaned = session.query(Transaction).filter(Transaction.user_id == None).all()
+        if orphaned:
+            for tx in orphaned:
+                tx.user_id = default_user.id
+            session.commit()
+
         count = session.query(Transaction).count()
         if count == 0 and os.path.exists(CSV_FILE):
-            migrate_csv(session)
+            migrate_csv(session, default_user.id)
     finally:
         session.close()
 
 
-def migrate_csv(session):
+def migrate_csv(session, default_user_id):
     """Import existing CSV data into the database."""
     try:
         with open(CSV_FILE, "r", newline="") as f:
@@ -80,6 +127,7 @@ def migrate_csv(session):
                         amount=float(row["amount"]),
                         category=row["category"].strip(),
                         description=row.get("description", "").strip(),
+                        user_id=default_user_id,
                     )
                     session.add(tx)
                     migrated += 1
@@ -90,12 +138,44 @@ def migrate_csv(session):
         print(f"CSV migration error: {e}")
 
 
-# --- CRUD Operations ---
-def add_transaction(date: str, amount: float, category: str, description: str) -> int:
+# --- User CRUD ---
+
+def get_user_by_username(session, username: str):
+    return session.query(User).filter(User.username == username).first()
+
+
+def get_user_by_email(session, email: str):
+    return session.query(User).filter(User.email == email).first()
+
+
+def get_user_by_id(session, user_id: int):
+    return session.query(User).filter(User.id == user_id).first()
+
+
+def create_user(session, username: str, email: str, hashed_password: str = None, auth_provider: str = "local", provider_id: str = None) -> User:
+    user = User(username=username, email=email, hashed_password=hashed_password, auth_provider=auth_provider, provider_id=provider_id)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+def get_user_by_provider(session, auth_provider: str, provider_id: str):
+    return session.query(User).filter(User.auth_provider == auth_provider, User.provider_id == provider_id).first()
+
+
+# --- Transaction CRUD (user-scoped) ---
+
+def add_transaction(user_id: int, date: str, amount: float, category: str, description: str) -> int:
     """Add a new transaction and return its ID."""
     session = SessionLocal()
     try:
-        tx = Transaction(date=date, amount=amount, category=category, description=description)
+        tx = Transaction(
+            user_id=user_id,
+            date=date,
+            amount=amount,
+            category=category,
+            description=description,
+        )
         session.add(tx)
         session.commit()
         session.refresh(tx)
@@ -104,11 +184,16 @@ def add_transaction(date: str, amount: float, category: str, description: str) -
         session.close()
 
 
-def get_transactions(start_date: str = None, end_date: str = None, category: str = None) -> list:
-    """Get transactions with optional filtering."""
+def get_transactions(
+    user_id: int,
+    start_date: str = None,
+    end_date: str = None,
+    category: str = None,
+) -> list:
+    """Get transactions with optional filtering, scoped to a user."""
     session = SessionLocal()
     try:
-        query = session.query(Transaction)
+        query = session.query(Transaction).filter(Transaction.user_id == user_id)
 
         if start_date:
             query = query.filter(Transaction.date >= start_date)
@@ -124,23 +209,34 @@ def get_transactions(start_date: str = None, end_date: str = None, category: str
         session.close()
 
 
-def get_transaction_by_id(transaction_id: int) -> dict:
-    """Get a single transaction by ID."""
+def get_transaction_by_id(transaction_id: int, user_id: int = None) -> dict:
+    """Get a single transaction by ID, optionally scoped to a user."""
     session = SessionLocal()
     try:
-        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        query = session.query(Transaction).filter(Transaction.id == transaction_id)
+        if user_id is not None:
+            query = query.filter(Transaction.user_id == user_id)
+        tx = query.first()
         return tx.to_dict() if tx else None
     finally:
         session.close()
 
 
 def update_transaction(
-    transaction_id: int, date: str, amount: float, category: str, description: str
+    transaction_id: int,
+    date: str,
+    amount: float,
+    category: str,
+    description: str,
+    user_id: int = None,
 ) -> bool:
     """Update an existing transaction. Returns True if successful."""
     session = SessionLocal()
     try:
-        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        query = session.query(Transaction).filter(Transaction.id == transaction_id)
+        if user_id is not None:
+            query = query.filter(Transaction.user_id == user_id)
+        tx = query.first()
         if not tx:
             return False
         tx.date = date
@@ -153,11 +249,14 @@ def update_transaction(
         session.close()
 
 
-def delete_transaction(transaction_id: int) -> bool:
+def delete_transaction(transaction_id: int, user_id: int = None) -> bool:
     """Delete a transaction by ID. Returns True if successful."""
     session = SessionLocal()
     try:
-        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        query = session.query(Transaction).filter(Transaction.id == transaction_id)
+        if user_id is not None:
+            query = query.filter(Transaction.user_id == user_id)
+        tx = query.first()
         if not tx:
             return False
         session.delete(tx)
@@ -167,8 +266,8 @@ def delete_transaction(transaction_id: int) -> bool:
         session.close()
 
 
-def get_summary(start_date: str = None, end_date: str = None) -> dict:
-    """Get income/expense/savings summary."""
+def get_summary(user_id: int, start_date: str = None, end_date: str = None) -> dict:
+    """Get income/expense/savings summary, scoped to a user."""
     session = SessionLocal()
     try:
         query = session.query(
@@ -179,7 +278,7 @@ def get_summary(start_date: str = None, end_date: str = None) -> dict:
                 func.sum(case((Transaction.category == "Expense", Transaction.amount))), 0
             ).label("total_expense"),
             func.count(Transaction.id).label("transaction_count"),
-        )
+        ).filter(Transaction.user_id == user_id)
 
         if start_date:
             query = query.filter(Transaction.date >= start_date)
@@ -200,12 +299,12 @@ def get_summary(start_date: str = None, end_date: str = None) -> dict:
         session.close()
 
 
-def get_chart_data(start_date: str = None, end_date: str = None) -> dict:
-    """Get data formatted for Chart.js charts."""
+def get_chart_data(user_id: int, start_date: str = None, end_date: str = None) -> dict:
+    """Get data formatted for Chart.js charts, scoped to a user."""
     session = SessionLocal()
     try:
         # Base filter
-        query = session.query(Transaction)
+        query = session.query(Transaction).filter(Transaction.user_id == user_id)
         if start_date:
             query = query.filter(Transaction.date >= start_date)
         if end_date:
