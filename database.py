@@ -3,7 +3,7 @@ import csv
 from datetime import datetime
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, func, case
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, func, case, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # Load .env file for local development
@@ -83,6 +83,14 @@ class Transaction(Base):
 def init_db():
     """Create tables and migrate CSV data if needed."""
     Base.metadata.create_all(bind=engine)
+
+    # Add user_id column if it doesn't exist (for existing databases)
+    try:
+        with engine.begin() as conn:
+            # This will fail gracefully if the column already exists
+            conn.execute(text("ALTER TABLE transactions ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+    except Exception as e:
+        print(f"Schema migration note: {e}")
 
     # Migrate CSV data on first run (assign to a default user if one exists)
     session = SessionLocal()
